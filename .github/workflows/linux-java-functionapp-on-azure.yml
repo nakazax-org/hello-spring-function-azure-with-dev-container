@@ -2,8 +2,8 @@ name: Deploy Java project to Azure Function App
 
 on:
   push:
-    # branches: [ master ]
-    branches: '**'
+    branches: [ master ]
+    # branches: '**'
 
 # CONFIGURATION
 # For help, go to https://github.com/Azure/Actions
