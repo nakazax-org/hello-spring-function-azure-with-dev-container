@@ -12,7 +12,7 @@ import java.util.function.Function;
 public class HelloFunction {
 
     public static void main(String[] args) throws Exception {
-        SpringApplication.run(HelloFunction.class, args);
+        SpringApplication.run(GoodbyeFunction.class, args);
     }
 
     @Bean
