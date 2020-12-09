@@ -1,0 +1,62 @@
+# Maven
+# Build your Java project and run tests with Apache Maven.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/java
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  serviceConnectionToAzure: service-connection-visual-studio-enterprise # Need to be changed
+  azureFunctionAppName: func-nakazax-hello-spring # Need to be changed
+  pomFunctionAppName: my-spring-function # Need to be changed
+  mavenCacheFolder: $(Pipeline.Workspace)/.m2/repository
+  mavenOpts: '-Dmaven.repo.local=$(mavenCacheFolder)'
+
+stages:
+- stage: BuildStage
+  jobs:
+  - job: BuildJob
+    steps:
+    - task: Cache@2
+      displayName: Cache Maven local repo
+      inputs:
+        key: 'maven | "$(Agent.OS)" | **/pom.xml'
+        restoreKeys: |
+          maven | "$(Agent.OS)"
+          maven
+        path: $(mavenCacheFolder)
+
+    - task: Maven@3
+      inputs:
+        mavenPomFile: 'pom.xml'
+        mavenOptions: '-Xmx3072m $(mavenOpts)'
+        javaHomeOption: 'JDKVersion'
+        jdkVersionOption: '1.8'
+        jdkArchitectureOption: 'x64'
+        publishJUnitResults: true
+        testResultsFiles: '**/surefire-reports/TEST-*.xml'
+        goals: 'package'
+
+    - publish: $(system.defaultworkingdirectory)/target/azure-functions/$(pomFunctionAppName)
+      artifact: FunctionApp
+
+- stage: DeployStage
+  dependsOn: BuildStage
+  condition: succeeded()
+  jobs:
+  - deployment: DeployJob
+    environment: Production
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureFunctionApp@1
+            inputs:
+              azureSubscription: $(serviceConnectionToAzure)
+              appType: functionApp
+              appName: $(azureFunctionAppName)
+              package: $(Pipeline.Workspace)/FunctionApp
